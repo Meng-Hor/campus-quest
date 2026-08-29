@@ -141,6 +141,20 @@ void displayTeams(const Team teams[], int size)
 {
     (void)teams; (void)size;
     /* TODO: print a readable table without inspecting unused capacity */
+    printf("+--------+------------------------------------------+----------+----------+\n");
+    printf("| %-6s | %-40s | %-8s | %-8s |\n", "ID", "Name", "Score", "Missions");
+    printf("+--------+------------------------------------------+----------+----------+\n");
+
+    for (int i=0; i<size; i++) {
+        printf("| %-6d | %-40s | %-8d | %-8d |\n", 
+               teams[i].id, 
+               teams[i].name, 
+               teams[i].score, 
+               teams[i].missions);
+    }
+
+    printf("+--------+------------------------------------------+----------+----------+\n");
+    cout<<"Total: "<<size<<" teams"<<endl;
 }
 
 int loadTeams(const char *filename, Team **teams, int *size, int *capacity)
