@@ -10,7 +10,7 @@ int loadTeams(const char *filename, Team **teams, int *size, int *capacity){
     {
         Team candidate;
 
-        // scanf 1 field to another
+        // Read each field from the line
         int fields = sscanf(line, "%d|%39[^|]|%d|%d", &candidate.id, candidate.name, &candidate.score, &candidate.missions);
 
         // Reject malformed lines
