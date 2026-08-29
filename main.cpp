@@ -119,6 +119,22 @@ void sortLeaderboard(Team teams[], int size)
 {
     (void)teams; (void)size;
     /* TODO: descending score; swap complete Team objects */
+    for(int i=0; i<size-1; i++){
+        int maxIndex=i;
+        for(int j=i+1; j<size; j++){
+            if(teams[maxIndex].score<teams[j].score){
+                maxIndex=j;
+            }else if (teams[maxIndex].score==teams[j].score && 
+                teams[maxIndex].missions>teams[j].missions){
+                maxIndex=j;
+            }
+        }
+        if(maxIndex!=i){
+            Team temp=teams[maxIndex];
+            teams[maxIndex]=teams[i];
+            teams[i]=temp;
+        }
+    }
 }
 
 void displayTeams(const Team teams[], int size)
