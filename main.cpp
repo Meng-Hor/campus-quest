@@ -1,3 +1,11 @@
+//Members:Role
+    // Chhay Leng Sok Somnang:saveTeams, deleteTeam
+    // Thorng Sovanpichcheata: addTeam, recordMission
+    // Ek Vannaro:loadTeams, findTeamIndex
+    // Taing Kimhak:addTeam, recordMission
+    // Ing Ly Meng Hor:sortLeaderboard, displayTeams
+//
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -5,8 +13,24 @@
 
 using namespace std;
 
+namespace Color {
+    const char* Reset       = "\033[0m";
+    const char* Red         = "\033[31m";
+    const char* Green       = "\033[32m";
+    const char* Blue        = "\033[34m";
+    const char* DarkGray    = "\033[90m";
+    const char* BIBlack     = "\033[3;38;2;0;0;0m";
+    const char* BSkyBlue    = "\033[48;2;65;182;230m";
+    const char* BPurple     = "\033[48;2;165;94;234m";
+}
+// The ANSI RGB Formulas
+// Foreground (Text Color):\033[38;2;<R>;<G>;<B>m
+// Background Color:\033[48;2;<R>;<G>;<B>m
+// Reset:\033[0m
+
 #define NAME_LEN 40
 #define LINE_LEN 160
+#define MENU_WIDTH 75
 
 typedef struct {
     int id;
@@ -25,7 +49,15 @@ void displayTeams(const Team teams[], int size);
 int loadTeams(const char *filename, Team **teams, int *size, int *capacity);
 int saveTeams(const char *filename, const Team teams[], int size);
 void readText(const char *prompt, char text[], int limit);
+void pause(void);
 int readInt(const char *prompt, int *value);
+void printError(const string error);
+void printSuccess(const char *prompt);
+void printMenuBanner(const char *prompt);
+void printSubMenuBanner(const char *prompt, bool extraSpace = true);
+void printLine(void);
+void clearScreen(void);
+void printTeamDetails(Team team);
 
 int main(void)
 {
@@ -33,45 +65,248 @@ int main(void)
     int size = 0;
     int capacity = 0;
     int choice;
-
+    string error="";
     loadTeams("teams.txt", &teams, &size, &capacity);
 
     do {
-        cout << "\n=== CAMPUS QUEST LEADERBOARD ===\n"
-                  << "1. Register a team\n2. Record mission points\n3. Find a team\n"
-                  << "4. Remove a team\n5. Show leaderboard\n6. Save and exit\n";
+        clearScreen();
+        printMenuBanner("Campus Quest Menu"); 
+        cout<<Color::Blue<<"  [1] "<<Color::Reset<<"Register new team"<<endl;
+        cout<<Color::Blue<<"  [2] "<<Color::Reset<<"Record mission points"<<endl;
+        cout<<Color::Blue<<"  [3] "<<Color::Reset<<"Find a team"<<endl;
+        cout<<Color::Blue<<"  [4] "<<Color::Reset<<"Remove a team"<<endl;
+        cout<<Color::Blue<<"  [5] "<<Color::Reset<<"Show leaderboard"<<endl;
+        cout<<Color::Blue<<"  [6] "<<Color::Reset<<"Save and exit"<<endl;
+        cout<<endl;
+        printLine();
+        cout<<endl;
+        printError(error);
 
         if (!readInt("Choose: ", &choice)) {
-            cout << "Invalid menu input.\n";
+            // cout << "Invalid menu input.\n";
+            error="FAILED: Invalid menu input";
             continue;
         }
 
         if (choice == 1) {
+            error="";
+            bool canceled = false;
             Team candidate = {0, "", 0, 0};
-            readInt("Team ID: ", &candidate.id);
-            readText("Team name: ", candidate.name, NAME_LEN);
-            /* TODO: call addTeam and report success/failure */
+            while(true){
+                clearScreen();
+                printSubMenuBanner("Team Registration");
+                printError(error);
+                if(!readInt("Enter Team ID (0 to cancel): ", &candidate.id)){
+                    error="FAILED: Invalid input";
+                    continue;
+                }
+                if (candidate.id == 0) { canceled = true; break; }
+                if (candidate.id < 0) {
+                    error="FAILED: ID must be positive integer";
+                    continue;
+                }
+                if(findTeamIndex(teams, size, candidate.id) != -1) {
+                    error="FAILED: ID already exist";
+                    continue;
+                }
+                error="";
+                break;
+            }
+            if (canceled) { error = ""; continue; }
+
+            while (true) {
+                clearScreen();
+                printSubMenuBanner("Team Registration");
+                printError(error);
+                readText("Enter Team Name (0 to cancel): ", candidate.name, NAME_LEN);
+                if (strcmp(candidate.name, "0") == 0) { canceled = true; break; }
+                if (candidate.name[0] == '\0') {
+                    error="FAILED: Team name cannot be empty";
+                    continue;
+                }
+                error="";
+                break; // Input is valid
+            }
+            if (canceled) { error = ""; continue; }
+
+            if(!addTeam(&teams,&size,&capacity,candidate)){
+                error="FAILED: Out of memory";
+                continue;
+            }else{
+                clearScreen();
+                printSubMenuBanner("Team Registration");
+                printSuccess("SUCCESS: Team added");
+                cout<<"\n  ID: "<<candidate.id<<endl;
+                cout<<"  Name: "<<candidate.name<<endl;
+            }
+            pause();
+            error="";
         } else if (choice == 2) {
             int id, points;
-            readInt("Team ID: ", &id);
-            readInt("Mission points (1-100): ", &points);
-            /* TODO: call recordMission and report success/failure */
+            bool canceled = false;
+            while(true){
+                clearScreen();
+                printSubMenuBanner("Score Update");
+                printError(error);
+                if(!readInt("Enter Team ID (0 to cancel): ", &id)) {
+                    error="FAILED: Invalid input";
+                    continue;
+                }
+                if (id == 0) { canceled = true; break; }
+                int index = findTeamIndex(teams, size, id);
+                if (index == -1) {
+                    error="FAILED: ID not found";
+                    continue;
+                }else{
+                    printSuccess("SUCCESS: Team found");
+                    cout<<endl;
+                    printTeamDetails(teams[index]);
+                    cout<<endl;
+                }
+                error="";
+                break;
+            }
+            if (canceled) { error = ""; continue; }
+
+            while(true){
+                clearScreen();
+                printSubMenuBanner("Score Update");
+                // Note: since the screen clears, let's re-print the found team info here so the user sees it while typing points
+                int index = findTeamIndex(teams, size, id);
+                printSuccess("SUCCESS: Team found");
+                cout<<endl;
+                printTeamDetails(teams[index]);
+                cout<<endl;
+
+                printError(error);
+                if(!readInt("Enter Mission Points (0 to cancel): ", &points)) {
+                    error="FAILED: Invalid input";
+                    continue;
+                }
+                if (points == 0) { canceled = true; break; }
+                if (points < 1 || points > 100) {
+                    error="FAILED: Points must be 1 to 100";
+                    continue;
+                }
+                error="";
+                break;
+            }
+            if (canceled) { error = ""; continue; }
+            
+            if(!recordMission(teams, size, id, points)){
+                error="FAILED: Could not update score";
+                continue;
+            }else{
+                clearScreen();
+                printSubMenuBanner("Score Update");
+                printSuccess("SUCCESS: Point updated");
+                cout<<endl;
+                int finalIndex = findTeamIndex(teams, size, id);
+                if (finalIndex != -1) {
+                    printTeamDetails(teams[finalIndex]);
+                    cout<<endl;
+                }
+            }
+            pause();
+            error="";
         } else if (choice == 3) {
             int id;
-            readInt("Team ID: ", &id);
-            /* TODO: search and display the matching complete record */
+            bool canceled = false;
+            while(true){
+                clearScreen();
+                printSubMenuBanner("Find a Team");
+                printError(error);
+                if(!readInt("Enter Team ID (0 to cancel): ", &id)){
+                    error="FAILED: Invalid input";
+                    continue;
+                }
+                if (id == 0) { canceled = true; break; }
+                int index = findTeamIndex(teams, size, id);
+                if (index == -1) {
+                    error="FAILED: ID not found";
+                    continue;
+                }else{
+                    printSuccess("SUCCESS: Team found");
+                    cout<<endl;
+                    printTeamDetails(teams[index]);
+                    cout<<endl;
+                }
+                error="";
+                break;
+            }
+            if (canceled) { error = ""; continue; }
+            pause();
+            error="";
         } else if (choice == 4) {
             int id;
-            readInt("Team ID: ", &id);
-            /* TODO: call deleteTeam and report success/failure */
+            bool canceled = false;
+            while(true){
+                clearScreen();
+                printSubMenuBanner("Remove a Team");
+                printError(error);
+                if(!readInt("Enter Team ID (0 to cancel): ", &id)){
+                    error="FAILED: Invalid input";
+                    continue;
+                }
+                if (id == 0) { canceled = true; break; }
+                int index = findTeamIndex(teams, size, id);
+                if (index == -1) {
+                    error="FAILED: ID not found";
+                    continue;
+                }
+                error="";
+                break;
+            }
+            if (canceled) { error = ""; continue; }
+
+            while(true){
+                clearScreen();
+                printSubMenuBanner("Remove a Team");
+                
+                int index = findTeamIndex(teams, size, id);
+                printSuccess("SUCCESS: Team found");
+                cout<<endl;
+                printTeamDetails(teams[index]);
+                cout<<endl;
+
+                printError(error);
+                char confirm[10];
+                readText("Are you sure you want to remove this team? (y/n): ", confirm, sizeof(confirm));
+                if (strcmp(confirm, "y") == 0 || strcmp(confirm, "Y") == 0) {
+                    error = "";
+                    break;
+                } else if (strcmp(confirm, "n") == 0 || strcmp(confirm, "N") == 0) {
+                    canceled = true;
+                    error = "";
+                    break;
+                } else {
+                    error="FAILED: Please enter 'y' or 'n'";
+                }
+            }
+            if (canceled) { error = ""; continue; }
+
+            if(!deleteTeam(teams, &size, id)){
+                error="FAILED: Could not remove team";
+                continue;
+            }else{
+                clearScreen();
+                printSubMenuBanner("Remove a Team");
+                printSuccess("SUCCESS: Team removed");
+            }
+            pause();
+            error="";
         } else if (choice == 5) {
+            clearScreen();
+            printSubMenuBanner("Leaderboard", false);
             sortLeaderboard(teams, size);
             displayTeams(teams, size);
+            pause();
+            error="";
         } else if (choice == 6) {
             if (!saveTeams("teams.txt", teams, size))
                 cout << "Warning: data could not be saved.\n";
         } else {
-            cout << "Choose a number from 1 to 6.\n";
+            error="FAILED: Option must be 1-6";
         }
     } while (choice != 6);
 
@@ -113,12 +348,6 @@ int addTeam(Team **teams, int *size, int *capacity, Team candidate){
         return 0;
     }
     if (candidate.name[0] == '\0') {
-        return 0;
-    }
-    if (strnlen(candidate.name, sizeof(candidate.name)) >= sizeof(candidate.name)) {
-        return 0;
-    }
-    if (candidate.score < 0 || candidate.missions < 0) {
         return 0;
     }
 
@@ -197,20 +426,18 @@ void displayTeams(const Team teams[], int size)
 {
     (void)teams; (void)size;
     /* TODO: print a readable table without inspecting unused capacity */
-    printf("+--------+------------------------------------------+----------+----------+\n");
-    printf("| %-6s | %-40s | %-8s | %-8s |\n", "ID", "Name", "Score", "Missions");
-    printf("+--------+------------------------------------------+----------+----------+\n");
-
+    printf("  %-6s | %-40s | %-8s | %-8s \n", "ID", "NAME", "SCORE", "MISSIONS");
     for (int i=0; i<size; i++) {
-        printf("| %-6d | %-40s | %-8d | %-8d |\n", 
+        cout << Color::DarkGray;
+        printf("  %-6d | %-40s | %-8d | %-8d \n", 
                teams[i].id, 
                teams[i].name, 
                teams[i].score, 
                teams[i].missions);
+        cout << Color::Reset;
     }
-
-    printf("+--------+------------------------------------------+----------+----------+\n");
-    cout<<"Total: "<<size<<" teams"<<endl;
+    printLine();
+    cout<<"  Total: "<<size<<" teams"<<endl;
 }
 
 int loadTeams(const char *filename, Team **teams, int *size, int *capacity){
@@ -278,15 +505,112 @@ int saveTeams(
 
 void readText(const char *prompt, char text[], int limit)
 {
-    cout << prompt;
+    cout << "  " <<prompt;
     if (fgets(text, limit, stdin) != NULL)
         text[strcspn(text, "\n")] = '\0';
+}
+
+void pause(void)
+{
+    cout << "\n  Press any key to return to main menu...\n";
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+        buffer[strcspn(buffer, "\n")] = '\0';
+    }
 }
 
 int readInt(const char *prompt, int *value)
 {
     char line[LINE_LEN], extra;
-    cout << prompt;
-    if (fgets(line, sizeof line, stdin) == NULL) return 0;
-    return sscanf(line, "%d %c", value, &extra) == 1;
+    cout << "  " <<prompt;
+    if (fgets(line, sizeof line, stdin) == NULL){
+        *value=0;
+        return 0;
+    }
+    if(sscanf(line, "%d %c", value, &extra)!=1){
+        *value=0;
+        return 0;
+    }
+    return 1;
+}
+
+void printError(const string error){
+    if(error!="\0"){
+        cout<<Color::Red<<"  "<<error<<Color::Reset<<endl<<endl;
+    }
+}
+
+void printSuccess(const char *prompt){
+    cout<<Color::Green<<"  "<<prompt<<Color::Reset<<endl;
+}
+
+void printMenuBanner(const char *prompt){
+    int width=MENU_WIDTH;
+    int text=strlen(prompt);
+    int left=(width-text)/2;
+    int right=width-text-left;
+    for(int i=0; i<width; i++){
+        cout<<"-";
+        // cout<<Color::BSkyBlue<<"-"<<Color::Reset;
+    }
+    cout<<endl;
+    for(int i=0;i<left;i++){
+        cout<<Color::BSkyBlue<<" ";
+    }
+    cout<<Color::BIBlack<<prompt;
+    for(int i=0;i<right;i++){
+        cout<<Color::BSkyBlue<<" "<<Color::Reset;
+    }
+    cout<<endl;
+    for(int i=0; i<width; i++){
+        cout<<"-";
+        // cout<<Color::BSkyBlue<<"-"<<Color::Reset;
+    }
+    cout<<endl<<endl;
+}
+
+void printSubMenuBanner(const char *prompt, bool extraSpace){
+    int width=MENU_WIDTH;
+    int text=strlen(prompt);
+    int left=(width-text)/2;
+    int right=width-text-left;
+    for(int i=0; i<width; i++){
+        cout<<"-";
+        // cout<<Color::BSkyBlue<<"-"<<Color::Reset;
+    }
+    cout<<endl;
+    for(int i=0;i<left;i++){
+        cout<<Color::BPurple<<" ";
+    }
+    cout<<Color::BIBlack<<prompt;
+    for(int i=0;i<right;i++){
+        cout<<Color::BPurple<<" "<<Color::Reset;
+    }
+    cout<<endl;
+    for(int i=0; i<width; i++){
+        cout<<"-";
+        // cout<<Color::BSkyBlue<<"-"<<Color::Reset;
+    }
+    if (extraSpace) cout<<endl<<endl;
+    else cout<<endl;
+}
+
+void printLine(void){
+    int width=MENU_WIDTH;
+    for(int i=0; i<width; i++){
+        cout<<"-";
+        // cout<<Color::BWineRed<<"-"<<Color::Reset;
+    }
+    cout<<endl;
+}
+
+void clearScreen(void) {
+    cout<<"\033[2J\033[1;1H";
+}
+
+void printTeamDetails(Team team) {
+    cout<<"    ID:"<<team.id<<endl;
+    cout<<"    Name:"<<team.name<<endl;
+    cout<<"    Score:"<<team.score<<endl;
+    cout<<"    Mission:"<<team.missions<<endl;
 }

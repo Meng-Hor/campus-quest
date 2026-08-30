@@ -1,0 +1,13 @@
+101|Alpha Squad|150|3
+  -
+102|Beta Force|120|2
+103|Gamma Ray|200|4
+130|Hello|900|9|98
+104|Delta Strike|(r|1
+105|Echo Element|300|5
+a|b|c
+106|Foxtrot Rangers|110|2
+107|Omega Order|110|7
+108|Neon Knights|80|1
+109|Titanium Tech|180|3
+110|Phantom Phalanx|250|4
