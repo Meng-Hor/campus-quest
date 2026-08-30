@@ -6,6 +6,8 @@
     // Ing Ly Meng Hor:sortLeaderboard, displayTeams
 //
 
+// GitHub Repo:https://github.com/Meng-Hor/campus-quest
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
