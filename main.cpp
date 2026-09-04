@@ -6,8 +6,6 @@
     // Ing Ly Meng Hor:sortLeaderboard, displayTeams
 //
 
-// GitHub Repo:https://github.com/Meng-Hor/campus-quest
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -30,7 +28,7 @@ namespace Color {
 // Background Color:\033[48;2;<R>;<G>;<B>m
 // Reset:\033[0m
 
-#define NAME_LEN 40
+#define NAME_LEN 30
 #define LINE_LEN 160
 #define MENU_WIDTH 75
 
@@ -105,6 +103,10 @@ int main(void)
                 if (candidate.id == 0) { canceled = true; break; }
                 if (candidate.id < 0) {
                     error="FAILED: ID must be positive integer";
+                    continue;
+                }
+                if (candidate.id > 999999) {
+                    error="FAILED: ID must be less than 999999";
                     continue;
                 }
                 if(findTeamIndex(teams, size, candidate.id) != -1) {
@@ -428,10 +430,11 @@ void displayTeams(const Team teams[], int size)
 {
     (void)teams; (void)size;
     /* TODO: print a readable table without inspecting unused capacity */
-    printf("  %-6s | %-40s | %-8s | %-8s \n", "ID", "NAME", "SCORE", "MISSIONS");
+    printf("  %-4s | %-6s | %-33s | %-8s | %-8s \n", "RANK", "ID", "NAME", "SCORE", "MISSIONS");
     for (int i=0; i<size; i++) {
         cout << Color::DarkGray;
-        printf("  %-6d | %-40s | %-8d | %-8d \n", 
+        printf("  %-4d | %-6d | %-33s | %-8d | %-8d \n", 
+               i + 1,
                teams[i].id, 
                teams[i].name, 
                teams[i].score, 
@@ -514,7 +517,7 @@ void readText(const char *prompt, char text[], int limit)
 
 void pause(void)
 {
-    cout << "\n  Press any key to return to main menu...\n";
+    cout << "\n  Press ENTER to return to main menu...\n";
     char buffer[128];
     if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
         buffer[strcspn(buffer, "\n")] = '\0';
